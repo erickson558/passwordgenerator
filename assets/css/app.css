@@ -1,0 +1,22 @@
+body {
+    background: #121212;
+    color: #f1f1f1;
+}
+
+.card {
+    background: #1e1e1e;
+    border: none;
+}
+
+.btn-generate {
+    width: 100%;
+}
+
+.password-display {
+    font-family: 'Courier New', monospace;
+    font-size: 1.25rem;
+    background: #2a2a2a;
+    border: none;
+    color: #0f0;
+    text-align: center;
+}

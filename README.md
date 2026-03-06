@@ -3,7 +3,7 @@
 Generador web en PHP para crear contraseñas seguras compatibles con escenarios SOAP/XML.
 
 ## Estado del Proyecto
-- Version actual: `V1.0.0`
+- Version actual: `V1.0.1`
 - Licencia: Apache License 2.0
 - Rama principal: `main`
 - Release automatizado: si, en cada push a `main` usando `.github/workflows/release.yml`
@@ -20,13 +20,13 @@ Generador web en PHP para crear contraseñas seguras compatibles con escenarios 
 - Permite copiar la contraseña al portapapeles desde la UI.
 
 ## Endpoints
-### `GET /index.php?action=generate&length=14`
+### `GET /api/password.php?length=14`
 Respuesta ejemplo:
 
 ```json
 {
 	"password": "A7f!k2Q#m9Lp",
-	"version": "V1.0.0"
+	"version": "V1.0.1"
 }
 ```
 
@@ -41,7 +41,11 @@ Respuesta ejemplo:
 - Animate.css 4.1.1
 
 ## Estructura del Repositorio
-- `index.php`: aplicacion web y endpoint de generacion
+- `index.php`: capa de presentacion (frontend server-side rendering)
+- `backend/password_service.php`: logica de negocio (version y generacion de password)
+- `api/password.php`: endpoint JSON del backend
+- `assets/css/app.css`: estilos del frontend
+- `assets/js/app.js`: comportamiento del frontend
 - `VERSION`: fuente unica de verdad del versionado (`Vx.x.x`)
 - `CHANGELOG.md`: historial de cambios
 - `.github/workflows/release.yml`: crea tag/release en cada push a `main`

@@ -1,80 +1,7 @@
 <?php
-// index.php PHP 5.4.31 - Generador de contraseñas seguras para SOAP
-
-function get_app_version() {
-  $versionFile = __DIR__ . DIRECTORY_SEPARATOR . 'VERSION';
-  if (is_readable($versionFile)) {
-    $value = trim(@file_get_contents($versionFile));
-    if ($value !== '') {
-      return $value;
-    }
-  }
-
-  return 'V0.0.0';
-}
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'backend' . DIRECTORY_SEPARATOR . 'password_service.php';
 
 $appVersion = get_app_version();
-
-function random_byte_value() {
-  // Fallback para servidores donde OpenSSL no está habilitado.
-  if (function_exists('openssl_random_pseudo_bytes')) {
-    $strong = false;
-    $byte = openssl_random_pseudo_bytes(1, $strong);
-    if ($byte !== false && strlen($byte) === 1) {
-      return ord($byte);
-    }
-  }
-
-  return mt_rand(0, 255);
-}
-
-function pick_random_char($str) {
-  $len = strlen($str);
-  if ($len === 0) {
-    return '';
-  }
-
-  return $str[random_byte_value() % $len];
-}
-
-// Genera contraseña segura evitando caracteres problemáticos para SOAP
-function generate_password($length) {
-    $length = max(4, min(20, (int)$length));
-
-    $lower   = 'abcdefghijklmnopqrstuvwxyz';
-    $upper   = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    $digits  = '0123456789';
-
-    // Caracteres especiales seguros para uso en XML/SOAP (sin &, <, >, ", ')
-    $special = '!#$%()*+-=.,_:;';
-
-    $all     = $lower . $upper . $digits . $special;
-
-    $chars = array(
-        pick_random_char($lower),
-        pick_random_char($upper),
-        pick_random_char($digits),
-        pick_random_char($special),
-    );
-
-    for ($i = 4; $i < $length; $i++) {
-        $chars[] = pick_random_char($all);
-    }
-
-    shuffle($chars);
-    return implode('', $chars);
-}
-
-if (isset($_GET['action']) && $_GET['action'] === 'generate') {
-    $len = isset($_GET['length']) ? $_GET['length'] : 14;
-    header('Content-Type: application/json');
-  header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-  echo json_encode(array(
-    'password' => generate_password($len),
-    'version' => $appVersion,
-  ));
-    exit;
-}
 ?>
 <!DOCTYPE html>
 <html lang="es" data-bs-theme="dark">
@@ -84,19 +11,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'generate') {
   <title>Generador de Contraseñas SOAP <?= htmlspecialchars($appVersion, ENT_QUOTES, 'UTF-8') ?></title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-  <style>
-    body { background: #121212; color: #f1f1f1; }
-    .card { background: #1e1e1e; border: none; }
-    .btn-generate { width: 100%; }
-    .password-display {
-      font-family: 'Courier New', monospace;
-      font-size: 1.25rem;
-      background: #2a2a2a;
-      border: none;
-      color: #0f0;
-      text-align: center;
-    }
-  </style>
+  <link rel="stylesheet" href="assets/css/app.css">
 </head>
 <body class="d-flex vh-100 align-items-center">
   <div class="container">
@@ -104,7 +19,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'generate') {
       <div class="col-md-6">
         <div class="card p-4 shadow-lg animate__animated animate__fadeInDown">
           <h3 class="card-title text-center mb-4">Generador de Contraseñas SOAP</h3>
-          <p class="text-center text-secondary mb-4">Versión <?= htmlspecialchars($appVersion, ENT_QUOTES, 'UTF-8') ?></p>
+          <p class="text-center text-secondary mb-4">Version <span id="appVersion"><?= htmlspecialchars($appVersion, ENT_QUOTES, 'UTF-8') ?></span></p>
           <div class="mb-3 d-flex align-items-center">
             <label for="lengthSelect" class="form-label me-2">Longitud:</label>
             <select id="lengthSelect" class="form-select w-auto">
@@ -114,7 +29,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'generate') {
             </select>
           </div>
           <div class="mb-3">
-            <input type="text" id="password" class="form-control password-display animate__animated" readonly placeholder="— Génial —">
+            <input type="text" id="password" class="form-control password-display animate__animated" readonly placeholder="Genera una password">
           </div>
           <div class="d-grid gap-2 mb-3">
             <button id="generateBtn" class="btn btn-primary btn-generate animate__animated animate__pulse animate__infinite">
@@ -140,41 +55,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'generate') {
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script>
-    $(function(){
-      var toast = new bootstrap.Toast($('#toastCopy'));
-
-      $('#generateBtn').on('click', function(){
-        var len = $('#lengthSelect').val();
-        $(this).prop('disabled', true).removeClass('animate__pulse');
-        $('#password').removeClass('animate__fadeIn').addClass('animate__fadeOut');
-        $.getJSON('?action=generate&length=' + len, function(data){
-          $('#password')
-            .val(data.password)
-            .removeClass('animate__fadeOut')
-            .addClass('animate__fadeIn');
-          $('#copyBtn').prop('disabled', false);
-        }).always(function(){
-          $('#generateBtn').prop('disabled', false).addClass('animate__pulse');
-        });
-      });
-
-      $('#copyBtn').on('click', function(){
-        var txt = $('#password').val();
-        if (navigator.clipboard && window.isSecureContext) {
-          navigator.clipboard.writeText(txt).then(()=> toast.show(), ()=> fallbackCopy(txt));
-        } else {
-          fallbackCopy(txt);
-        }
-      });
-
-      function fallbackCopy(text) {
-        var ta = $('<textarea>').appendTo('body').val(text).select();
-        document.execCommand('copy');
-        ta.remove();
-        toast.show();
-      }
-    });
-  </script>
+  <script src="assets/js/app.js"></script>
 </body>
 </html>

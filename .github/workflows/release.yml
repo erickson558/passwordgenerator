@@ -33,6 +33,19 @@ jobs:
           fi
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Ensure VERSION changed in this push
+        shell: bash
+        run: |
+          BEFORE_SHA="${{ github.event.before }}"
+          if [[ -n "$BEFORE_SHA" && "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]]; then
+            PREV_VERSION=$(git show "$BEFORE_SHA:VERSION" 2>/dev/null | tr -d '[:space:]' || true)
+            CURR_VERSION="${{ steps.version.outputs.value }}"
+            if [[ -n "$PREV_VERSION" && "$PREV_VERSION" == "$CURR_VERSION" ]]; then
+              echo "VERSION must be incremented on each commit to main. Current: $CURR_VERSION" >&2
+              exit 1
+            fi
+          fi
+
       - name: Check tag existence
         id: tag_check
         shell: bash
