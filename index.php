@@ -1,11 +1,40 @@
 <?php
 // index.php PHP 5.4.31 - Generador de contraseñas seguras para SOAP
 
+function get_app_version() {
+  $versionFile = __DIR__ . DIRECTORY_SEPARATOR . 'VERSION';
+  if (is_readable($versionFile)) {
+    $value = trim(@file_get_contents($versionFile));
+    if ($value !== '') {
+      return $value;
+    }
+  }
+
+  return 'V0.0.0';
+}
+
+$appVersion = get_app_version();
+
+function random_byte_value() {
+  // Fallback para servidores donde OpenSSL no está habilitado.
+  if (function_exists('openssl_random_pseudo_bytes')) {
+    $strong = false;
+    $byte = openssl_random_pseudo_bytes(1, $strong);
+    if ($byte !== false && strlen($byte) === 1) {
+      return ord($byte);
+    }
+  }
+
+  return mt_rand(0, 255);
+}
+
 function pick_random_char($str) {
-    $len  = strlen($str);
-    $byte = openssl_random_pseudo_bytes(1);
-    $ord  = ord($byte);
-    return $str[$ord % $len];
+  $len = strlen($str);
+  if ($len === 0) {
+    return '';
+  }
+
+  return $str[random_byte_value() % $len];
 }
 
 // Genera contraseña segura evitando caracteres problemáticos para SOAP
@@ -39,7 +68,11 @@ function generate_password($length) {
 if (isset($_GET['action']) && $_GET['action'] === 'generate') {
     $len = isset($_GET['length']) ? $_GET['length'] : 14;
     header('Content-Type: application/json');
-    echo json_encode(array('password' => generate_password($len)));
+  header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+  echo json_encode(array(
+    'password' => generate_password($len),
+    'version' => $appVersion,
+  ));
     exit;
 }
 ?>
@@ -48,7 +81,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'generate') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Generador de Contraseñas SOAP</title>
+  <title>Generador de Contraseñas SOAP <?= htmlspecialchars($appVersion, ENT_QUOTES, 'UTF-8') ?></title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
   <style>
@@ -71,6 +104,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'generate') {
       <div class="col-md-6">
         <div class="card p-4 shadow-lg animate__animated animate__fadeInDown">
           <h3 class="card-title text-center mb-4">Generador de Contraseñas SOAP</h3>
+          <p class="text-center text-secondary mb-4">Versión <?= htmlspecialchars($appVersion, ENT_QUOTES, 'UTF-8') ?></p>
           <div class="mb-3 d-flex align-items-center">
             <label for="lengthSelect" class="form-label me-2">Longitud:</label>
             <select id="lengthSelect" class="form-select w-auto">
